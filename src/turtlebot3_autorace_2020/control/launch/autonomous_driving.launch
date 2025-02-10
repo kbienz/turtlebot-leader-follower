@@ -1,0 +1,7 @@
+<launch>
+  <include file="/home/ubuntu/catkin_ws/src/turtlebot3/turtlebot3_bringup/launch/turtlebot3_rpicamera.launch" />
+  <include file="/home/ubuntu/catkin_ws/src/turtlebot3_autorace_2020/turtlebot3_autorace_camera/launch/intrinsic_camera_calibration.launch" />
+  <include file="/home/ubuntu/catkin_ws/src/turtlebot3_autorace_2020/turtlebot3_autorace_camera/launch/extrinsic_camera_calibration.launch" />
+  <include file="/home/ubuntu/catkin_ws/src/turtlebot3_autorace_2020/turtlebot3_autorace_detect/launch/detect_lane.launch" />
+  <include file="/home/ubuntu/catkin_ws/src/turtlebot3_autorace_2020/turtlebot3_autorace_driving/launch/turtlebot3_autorace_control_lane.launch" />
+</launch>
