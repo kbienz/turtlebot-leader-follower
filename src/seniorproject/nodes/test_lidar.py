@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import rospy
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Float32  # Added for publishing distance
@@ -11,6 +12,7 @@ class TestLidar:
         self.sub_lidar_data = rospy.Subscriber('/scan', LaserScan, self.cbFindForwardDistance, queue_size=1)
         # Changed publisher to publish float value instead of compressed image
         self.pub_forward_distance = rospy.Publisher('/forward_distance', Float32, queue_size=1)
+        print("Successfuly initialized LIDAR test node!")
 
     def cbFindForwardDistance(self, lidar_data):
         try:
