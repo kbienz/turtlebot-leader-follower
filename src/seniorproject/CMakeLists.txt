@@ -16,6 +16,6 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS
-  scripts/test_lidar.py
+  nodes/test_lidar.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
