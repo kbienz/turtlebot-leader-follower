@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>seniorproject</name>
+  <version>1.2.6</version>
+  <description>Senior Project Code</description>
+
+  <license>Apache 2.0</license>
+  <license>BSD</license>
+
+  <author email="your_email@example.com">Kalon Bienz</author>
+  <author email="your_email@example.com">Patrick Crandall</author>
+  <maintainer email="your_email@example.com">Will Son</maintainer>
+
+  <url type="website">http://wiki.ros.org/turtlebot3</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+
+</package>
