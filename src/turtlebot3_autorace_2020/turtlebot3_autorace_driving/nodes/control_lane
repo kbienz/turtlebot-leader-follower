@@ -21,22 +21,31 @@
 
 import rospy
 import numpy as np
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Float32
 from geometry_msgs.msg import Twist
 
 class ControlLane():
     def __init__(self):
+        self.sub_forward_distance = rospy.Subscriber('/forward_distance', Float32, self.cbDetectObstacleAhead, queue_size=1)
         self.sub_lane = rospy.Subscriber('/control/lane', Float64, self.cbFollowLane, queue_size = 1)
         self.sub_max_vel = rospy.Subscriber('/control/max_vel', Float64, self.cbGetMaxVel, queue_size = 1)
         self.pub_cmd_vel = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
 
         self.lastError = 0
         self.MAX_VEL = 0.1
+        self.obstacleDetected = 0
 
         rospy.on_shutdown(self.fnShutDown)
 
     def cbGetMaxVel(self, max_vel_msg):
         self.MAX_VEL = max_vel_msg.data
+
+    def cbDetectObstacleAhead(self, forward_distance_msg):
+        if forward_distance_msg.data<1.0:
+            self.obstacleDetected = 1
+        else:
+            self.obstacleDetected = 0
+            print("No obstacle detected!" )
 
     def cbFollowLane(self, desired_center):
         center = desired_center.data
@@ -57,6 +66,13 @@ class ControlLane():
         twist.angular.x = 0
         twist.angular.y = 0
         twist.angular.z = -max(angular_z, -1.2) if angular_z < 0 else -min(angular_z, 1.2)
+        if self.obstacleDetected==1:
+            twist.linear.x = 0
+            twist.angular.z = 0
+            print("Obstacle Detected! :(  Motors off")
+#        else:
+#            twist.linear.x = min(self.MAX_VEL * ((1-abs(error) / 500) **2.2), 0.065)
+#            twist.angular.z = -max(angular_z, -1.2) if angular_z < 0 else -min(angular_z, 1.2)
         self.pub_cmd_vel.publish(twist)
 
     def fnShutDown(self):
@@ -65,7 +81,7 @@ class ControlLane():
         twist = Twist()
         twist.linear.x = 0
         twist.linear.y = 0
-        twist.linear.z = 0
+        twistt.linear.z = 0
         twist.angular.x = 0
         twist.angular.y = 0
         twist.angular.z = 0
