@@ -1,0 +1,17 @@
+scan_filter_chain:
+- name: range
+  type: laser_filters/LaserScanRangeFilter
+  params:
+    use_message_range_limits: false
+    lower_threshold: 0.2
+    upper_threshold: 7.0     # adjust these thresholds based on your needs
+    lower_replacement_value: .inf
+    upper_replacement_value: .inf
+#- name: angle
+#  type: laser_filters/LaserScanAngularBoundsFilterInPlace
+#  params:
+#    lower_angle: -0.785
+#    upper_angle: 0.785
+
+#- name: interpolation
+#  type: laser_filters/InterpolationFilter

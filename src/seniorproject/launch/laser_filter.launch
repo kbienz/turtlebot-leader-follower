@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+    <rosparam command="load" file="$(find seniorproject)/config/laser_filter_config.yaml" />
+    <remap from="scan" to="/scan" />
+    <remap from="scan_filtered" to="/scan_filtered" />
+  </node>
+
+  <node pkg="seniorproject" type="test_lidar.py" name="test_lidar" output="screen">
+  </node>
+</launch>

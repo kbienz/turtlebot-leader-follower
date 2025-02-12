@@ -1,0 +1,4 @@
+[submodule "src/laser_filters"]
+	path = src/laser_filters
+	url = https://github.com/ros-perception/laser_filters.git
+	branch = noetic
