@@ -1,0 +1,17 @@
+<launch>
+
+  <!--  
+  <arg name="robot_name" default="$(env ROBOT_NUM)" doc="Unique namespace for the robot (turtlebot#)"/>
+
+  <group ns="$(arg robot_name)">
+      <node pkg="seniorproject" type="follower_controller.py" name="leader_detect" output="screen" >
+        <remap from="/scan" to="/$(arg robot_name)/scan" />
+        <remap from="/cmd_vel" to="/$(arg robot_name)/cmd_vel" />
+        <remap from="/imu" to="/$(arg robot_name)/imu" />
+      </node>
+  </group>
+  -->
+
+  <node pkg="seniorproject" type="follower_controller.py" name="leader_detect" output="screen" />
+
+</launch>
