@@ -29,6 +29,7 @@ class ControlLane():
         self.sub_forward_distance = rospy.Subscriber('/forward_distance', Float32, self.cbDetectObstacleAhead, queue_size=1)
         self.sub_lane = rospy.Subscriber('/control/lane', Float64, self.cbFollowLane, queue_size = 1)
         self.sub_max_vel = rospy.Subscriber('/control/max_vel', Float64, self.cbGetMaxVel, queue_size = 1)
+        self.sub_linear_x = rospy.Subscriber('/linear_x', Float32, self.cbGetLinearX,queue_size = 1)
         self.pub_cmd_vel = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
 
         self.lastError = 0
@@ -37,6 +38,9 @@ class ControlLane():
         self.obstacleDetected = 0
         self.SAFE_DIST = 0.5 #Safe follow distance in meters
         rospy.on_shutdown(self.fnShutDown)
+
+    def cbGetLinearX(self, linear_x_msg):
+        self.linear_x = linear_x_msg.data
 
     def cbGetMaxVel(self, max_vel_msg):
         self.MAX_VEL = max_vel_msg.data
@@ -60,23 +64,18 @@ class ControlLane():
         self.lastError = error
 
         twist = Twist()
-        # twist.linear.x = 0.05
-        #twist.linear.x = min(self.MAX_VEL * ((1 - abs(error) / 500) ** 2.2), 0.065)
         twist.linear.y = 0
         twist.linear.z = 0
         twist.angular.x = 0
         twist.angular.y = 0
 
-        twist.linear.x = min(self.MAX_VEL * ((1 - abs(error) / 500) ** 2.2), 0.065)
+        twist.linear.x = min(1.2 * ((1 - abs(error) / 500) ** 2.2) * self.linear_x, 0.065)
         twist.angular.z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
 
         if self.obstacleDetected==1:
             twist.linear.x = 0
             twist.angular.z = 0
             print("Obstacle Detected! :(  Motors off")
-#        else:
-#            twist.linear.x = min(self.MAX_VEL * ((1-abs(error) / 500) **2.2), 0.065)
-#            twist.angular.z = -max(angular_z, -1.2) if angular_z < 0 else -min(angular_z, 1.2)
         self.pub_cmd_vel.publish(twist)
 
     def fnShutDown(self):
