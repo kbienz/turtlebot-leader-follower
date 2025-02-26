@@ -7,22 +7,27 @@ from nav_msgs.msg import Odometry
 import rospy
 import tf.transformations
 from std_msgs.msg import Float32
+from collections import deque
 
 class RobotFollower:
     def __init__(self):
         # Initialize ROS node
         rospy.init_node('robot_follower', anonymous=True)
 
+        # Store last 60 errors, for integral controller
+        self.integral_window_size = 45
+        self.error_queue = deque(maxlen=self.integral_window_size)
+
         # Follower control parameters
-        self.desired_distance = .2  # Desired following distance in meters
+        self.desired_distance = .3  # Desired following distance in meters
         self.max_linear_speed = .1  # Maximum linear speed
         self.max_angular_speed = 2.0  # Maximum angular speed
         self.min_safe_distance = 0.05  # Minimum safe distance to leader
 
         # PID controller gains
-        self.linear_kp = .20
-        self.linear_ki = 0
-        self.linear_kd = 0
+        self.linear_kp = .25
+        self.linear_ki = .08
+        self.linear_kd = .1
         self.angular_kp = .5
         self.angular_ki = 0
         self.angular_kd = 0
@@ -41,7 +46,6 @@ class RobotFollower:
         self.motors_enabled = True
 
         # Publishers and subscribers
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
         self.linear_x_pub = rospy.Publisher('/linear_x', Float32, queue_size=1)
 
@@ -63,7 +67,7 @@ class RobotFollower:
             if ranges[i] < ranges[min_index] and ranges[i] > .01:
                 min_index = i
         degree = angles[min_index] * 180 / np.pi
-        print(f"Angle: {round(degree,2)} || Dist: {round(ranges[min_index], 2)}meters")
+        #print(f"Angle: {round(degree,2)} || Dist: {round(ranges[min_index], 2)}meters")
 
         # Leader angle and distance
         self.leader_distance = ranges[min_index]
@@ -78,8 +82,10 @@ class RobotFollower:
         self.last_time = current_time
 
         # Linear control
+        print(f"Began PID error calculation")
         linear_error = self.leader_distance - self.desired_distance
-        self.linear_error_sum += linear_error * dt
+        self.error_queue.append(linear_error)
+        self.linear_error_sum = sum(self.error_queue) * dt
         linear_error_delta = (linear_error - self.last_linear_error) / dt
 
         linear_velocity = (self.linear_kp * linear_error +
@@ -99,6 +105,7 @@ class RobotFollower:
         angular_velocity =  (self.angular_kp * angular_error +
                              self.angular_ki * self.angular_error_sum +
                              self.angular_kd * angular_error_delta)
+        print(f"Completed PID error Calculation")
 
         # Update error history
         self.last_linear_error = linear_error
@@ -110,21 +117,11 @@ class RobotFollower:
         angular_velocity = np.clip(angular_velocity, -self.max_angular_speed,
                                    self.max_angular_speed)
 
-        # Safety check
-        if self.leader_distance < self.min_safe_distance:
-            linear_velocity = min(0, linear_velocity)  # Only allow backing up
-            print("[WARN], Dist<Safe_Dist, Only Backing Up is Enabled")
-
         # Publish control command
-        cmd_vel = Twist()
-        #cmd_vel.linear.x = linear_velocity
         linear_x = Float32()
         linear_x.data = linear_velocity
-        #cmd_vel.angular.z = angular_velocity
-
-        if self.motors_enabled == True:
-            #self.cmd_vel_pub.publish(cmd_vel)
-            self.linear_x_pub.publish(linear_x)
+        self.linear_x_pub.publish(linear_x)
+        print(f"Sent {round(linear_velocity, 2)} to /cmd_vel")
 
     def run(self):
         """
@@ -134,8 +131,6 @@ class RobotFollower:
 
         while not rospy.is_shutdown():
             rate.sleep()
-        cmd_vel = Twist()
-        #self.cmd_vel_pub.publish(cmd_vel)
 
 
 if __name__ == '__main__':

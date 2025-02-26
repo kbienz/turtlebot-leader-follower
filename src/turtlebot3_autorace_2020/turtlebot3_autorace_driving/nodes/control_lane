@@ -57,8 +57,8 @@ class ControlLane():
 
         error = center - 500
 
-        Kp = 0.0015 #0.0005
-        Kd = 0.005   #0.0009
+        Kp = 0.0016 #0.0015
+        Kd = 0.005   #0.005
 
         angular_z = Kp * error + Kd * (error - self.lastError)
         self.lastError = error
@@ -69,13 +69,15 @@ class ControlLane():
         twist.angular.x = 0
         twist.angular.y = 0
 
-        twist.linear.x = min(1.2 * ((1 - abs(error) / 500) ** 2.2) * self.linear_x, 0.065)
+#        base = max(0, 1-abs(error)/500) #Ensures base isnt negative
+#        twist.linear.x = min(1.2 * (base ** 3.1) * self.linear_x, 0.1) #1.2x; **2.2; 0.065
+        twist.linear.x = min(self.linear_x, .085)
         twist.angular.z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
 
-        if self.obstacleDetected==1:
-            twist.linear.x = 0
-            twist.angular.z = 0
-            print("Obstacle Detected! :(  Motors off")
+#        if self.obstacleDetected==1:
+#            twist.linear.x = 0
+#            twist.angular.z = 0
+#            print("Obstacle Detected! :(  Motors off")
         self.pub_cmd_vel.publish(twist)
 
     def fnShutDown(self):
