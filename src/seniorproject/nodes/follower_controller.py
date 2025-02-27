@@ -51,9 +51,9 @@ class RobotFollower:
 
         # Publishers and subscribers
         self.sub_lidar = rospy.Subscriber('/scan', LaserScan, self.cbLidar)
-        self.sub_lane = rospy.Subscriber('/control/lane', Float64, self.cbFollowLane, queue_size = 1)
+        self.sub_lane = rospy.Subscriber('/detect/lane', Float64, self.cbFollowLane, queue_size = 1)
         
-        self.pub_cmd_vel = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
+        self.pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
     def cbLidar(self, scan):
         # Process LIDAR data to detect Leader
@@ -124,8 +124,8 @@ class RobotFollower:
             #Send latest velocity commands
             twist.linear.x = self.linear_x
             twist.angular.z = self.angular_z
-            print(f"Linear: {self.linear_x} || Angular: {self.angular_z}\n")
-            #self.pub_cmd_vel.publish(twist)
+            #print(f"Linear: {self.linear_x} || Angular: {self.angular_z}\n")
+            self.pub_cmd_vel.publish(twist)
 
 
 if __name__ == '__main__':
