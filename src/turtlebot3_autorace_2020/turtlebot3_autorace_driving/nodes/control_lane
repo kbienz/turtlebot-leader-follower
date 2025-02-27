@@ -27,10 +27,10 @@ from geometry_msgs.msg import Twist
 class ControlLane():
     def __init__(self):
         self.sub_forward_distance = rospy.Subscriber('/forward_distance', Float32, self.cbDetectObstacleAhead, queue_size=1)
-        self.sub_lane = rospy.Subscriber('/control/lane', Float64, self.cbFollowLane, queue_size = 1)
+        self.sub_lane = rospy.Subscriber('/detect/lane', Float64, self.cbFollowLane, queue_size = 1)
         self.sub_max_vel = rospy.Subscriber('/control/max_vel', Float64, self.cbGetMaxVel, queue_size = 1)
         self.sub_linear_x = rospy.Subscriber('/linear_x', Float32, self.cbGetLinearX,queue_size = 1)
-        self.pub_cmd_vel = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
+        self.pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
         self.lastError = 0
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)

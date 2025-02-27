@@ -7,6 +7,7 @@ from nav_msgs.msg import Odometry
 import rospy
 import tf.transformations
 from std_msgs.msg import Float32
+from std_msgs.msg import Float64
 from collections import deque
 
 class RobotFollower:
@@ -21,38 +22,51 @@ class RobotFollower:
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
         self.max_linear_speed = .1  # Maximum linear speed
-        self.max_angular_speed = 2.0  # Maximum angular speed
+        self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
+
         self.min_safe_distance = 0.05  # Minimum safe distance to leader
 
         # PID controller gains
         self.linear_kp = .25
         self.linear_ki = .08
         self.linear_kd = .1
-        self.angular_kp = .5
+
+        self.angular_kp = 0.0016 #0.0015
+        self.angular_kd = 0.005   #0.005
         self.angular_ki = 0
-        self.angular_kd = 0
 
         # Controller state
         self.linear_error_sum = 0
-        self.angular_error_sum = 0
         self.last_linear_error = 0
         self.last_angular_error = 0
         self.last_time = rospy.Time.now()
 
         # Robot state
-        # self.leader_detected = True
         self.leader_distance = 0.0
         self.leader_angle = 0.0
-        self.motors_enabled = True
+
+        #initialize motor command variable
+        self.linear_x = 0.0
+        self.angular_z = 0.0
 
         # Publishers and subscribers
-        self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
-        self.linear_x_pub = rospy.Publisher('/linear_x', Float32, queue_size=1)
+        self.sub_lidar = rospy.Subscriber('/scan', LaserScan, self.cbLidar)
+        self.sub_lane = rospy.Subscriber('/control/lane', Float64, self.cbFollowLane, queue_size = 1)
+        
+        self.pub_cmd_vel = rospy.Publisher('/control/cmd_vel', Twist, queue_size = 1)
 
-    def lidar_callback(self, scan):
+    def cbLidar(self, scan):
         # Process LIDAR data to detect Leader
         self.detect_leader(scan)
         self.follow_leader()
+
+    def cbFollowLane(self, desired_center):
+        center = desired_center.data
+        error = center - 500
+        angular_z = self.angular_kp * error + self.angular_kd * (error - self.last_angular_error)
+        self.last_angular_error = error
+        self.angular_z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
+
 
     def detect_leader(self, scan):
         """
@@ -66,8 +80,6 @@ class RobotFollower:
         for i in range(1, len(ranges)):
             if ranges[i] < ranges[min_index] and ranges[i] > .01:
                 min_index = i
-        degree = angles[min_index] * 180 / np.pi
-        #print(f"Angle: {round(degree,2)} || Dist: {round(ranges[min_index], 2)}meters")
 
         # Leader angle and distance
         self.leader_distance = ranges[min_index]
@@ -92,36 +104,13 @@ class RobotFollower:
                            self.linear_ki * self.linear_error_sum +
                            self.linear_kd * linear_error_delta)
 
-        # Angular Control
-        if self.leader_angle < np.pi:
-            angular_error = self.leader_angle
-
-        elif self.leader_angle > np.pi:
-            angular_error = -2*np.pi + self.leader_angle
-
-        self.angular_error_sum += angular_error * dt
-        angular_error_delta = (angular_error - self.last_angular_error) / dt
-
-        angular_velocity =  (self.angular_kp * angular_error +
-                             self.angular_ki * self.angular_error_sum +
-                             self.angular_kd * angular_error_delta)
-        print(f"Completed PID error Calculation")
 
         # Update error history
         self.last_linear_error = linear_error
-        self.last_angular_error = angular_error
 
-        # Apply velocity limits
-        linear_velocity = np.clip(linear_velocity, -self.max_linear_speed,
+        # Update linear velocity
+        self.linear_x = np.clip(linear_velocity, -self.max_linear_speed,
                                   self.max_linear_speed)
-        angular_velocity = np.clip(angular_velocity, -self.max_angular_speed,
-                                   self.max_angular_speed)
-
-        # Publish control command
-        linear_x = Float32()
-        linear_x.data = linear_velocity
-        self.linear_x_pub.publish(linear_x)
-        print(f"Sent {round(linear_velocity, 2)} to /cmd_vel")
 
     def run(self):
         """
@@ -131,6 +120,12 @@ class RobotFollower:
 
         while not rospy.is_shutdown():
             rate.sleep()
+            twist = Twist()
+            #Send latest velocity commands
+            twist.linear.x = self.linear_x
+            twist.angular.z = self.angular_z
+            print(f"Linear: {self.linear_x} || Angular: {self.angular_z}\n")
+            #self.pub_cmd_vel.publish(twist)
 
 
 if __name__ == '__main__':
