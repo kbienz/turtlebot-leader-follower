@@ -21,17 +21,18 @@ class RobotFollower:
 
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
-        self.max_linear_speed = .1  # Maximum linear speed
+        self.max_linear_speed = .08  # Maximum linear speed
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
 
-        self.min_safe_distance = 0.05  # Minimum safe distance to leader
+#        self.min_safe_distance = 0.05  # Minimum safe distance to leader
 
         # PID controller gains
         self.linear_kp = .25
         self.linear_ki = .08
-        self.linear_kd = .1
+        self.linear_kd = .2      #.1
+        self.linear_scalar = 1.0 #Linear scaler, used for slowing down linear when making a turn
 
-        self.angular_kp = 0.0016 #0.0015
+        self.angular_kp = 0.0014 #0.0016
         self.angular_kd = 0.005   #0.005
         self.angular_ki = 0
 
@@ -52,7 +53,7 @@ class RobotFollower:
         # Publishers and subscribers
         self.sub_lidar = rospy.Subscriber('/scan', LaserScan, self.cbLidar)
         self.sub_lane = rospy.Subscriber('/detect/lane', Float64, self.cbFollowLane, queue_size = 1)
-        
+
         self.pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
     def cbLidar(self, scan):
@@ -66,7 +67,8 @@ class RobotFollower:
         angular_z = self.angular_kp * error + self.angular_kd * (error - self.last_angular_error)
         self.last_angular_error = error
         self.angular_z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
-
+        self.linear_scalar = 1.2*(1-np.abs(error)/500)**2.2 #Initilialize scalar, ranging from 0 to 1.2
+        self.linear_scalar =  min(self.linear_scalar, 1) #Set upper limit on scalar = 1
 
     def detect_leader(self, scan):
         """
@@ -78,7 +80,7 @@ class RobotFollower:
         # Find index for closest non-zero range lidar value
         min_index = 0
         for i in range(1, len(ranges)):
-            if ranges[i] < ranges[min_index] and ranges[i] > .01:
+            if ranges[i] < ranges[min_index] and ranges[i] > .005:
                 min_index = i
 
         # Leader angle and distance
@@ -122,9 +124,11 @@ class RobotFollower:
             rate.sleep()
             twist = Twist()
             #Send latest velocity commands
-            twist.linear.x = self.linear_x
+            if self.linear_x < 0:
+                self.angular_z *= -1
+            twist.linear.x = self.linear_x * self.linear_scalar
+            print(f"Linear scalar: {self.linear_scalar}\n")
             twist.angular.z = self.angular_z
-            #print(f"Linear: {self.linear_x} || Angular: {self.angular_z}\n")
             self.pub_cmd_vel.publish(twist)
 
 
