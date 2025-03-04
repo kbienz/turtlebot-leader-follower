@@ -21,7 +21,7 @@ class RobotFollower:
 
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
-        self.max_linear_speed = .08  # Maximum linear speed
+        self.max_linear_speed = .108  # Maximum linear speed
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
 
 #        self.min_safe_distance = 0.05  # Minimum safe distance to leader
@@ -32,8 +32,8 @@ class RobotFollower:
         self.linear_kd = .2      #.1
         self.linear_scalar = 1.0 #Linear scaler, used for slowing down linear when making a turn
 
-        self.angular_kp = 0.0014 #0.0016
-        self.angular_kd = 0.005   #0.005
+        self.angular_kp = 0.0025 #0.0014 BEST
+        self.angular_kd = 0.007   #0.005 BEST
         self.angular_ki = 0
 
         # Controller state
@@ -63,13 +63,18 @@ class RobotFollower:
 
     def cbFollowLane(self, desired_center):
         center = desired_center.data
-        error = center - 500
+        error = center - 250
         angular_z = self.angular_kp * error + self.angular_kd * (error - self.last_angular_error)
         self.last_angular_error = error
+        error = error * 2 #Turn 500x300 to 1000x600
+        if error>=500:
+           error = 500
+        elif error<=-500:
+           error = -500
+        print(f"Error: {error}\n")
         self.angular_z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
-        self.linear_scalar = 1.2*(1-np.abs(error)/500)**2.2 #Initilialize scalar, ranging from 0 to 1.2
+        self.linear_scalar = 2*(1-np.abs(error)/500)**2.2  #2.2Initilialize scalar, ranging from 0 to 1.2
         self.linear_scalar =  min(self.linear_scalar, 1) #Set upper limit on scalar = 1
-
     def detect_leader(self, scan):
         """
         Process LIDAR scan to detect leader
@@ -96,7 +101,7 @@ class RobotFollower:
         self.last_time = current_time
 
         # Linear control
-        print(f"Began PID error calculation")
+        #print(f"Began PID error calculation")
         linear_error = self.leader_distance - self.desired_distance
         self.error_queue.append(linear_error)
         self.linear_error_sum = sum(self.error_queue) * dt
@@ -118,18 +123,19 @@ class RobotFollower:
         """
         Main control loop
         """
-        rate = rospy.Rate(20)  # 20 Hz control loop
+        rate = rospy.Rate(10)  # 10 Hz control loop
 
         while not rospy.is_shutdown():
             rate.sleep()
             twist = Twist()
-            #Send latest velocity commands
-            if self.linear_x < 0:
+
+            if self.linear_x < 0: #If backing up, send the reverse turning command
                 self.angular_z *= -1
-            twist.linear.x = self.linear_x * self.linear_scalar
-            print(f"Linear scalar: {self.linear_scalar}\n")
+
+            #print(f"Linear scalar: {self.linear_scalar}\n")
+            twist.linear.x = self.linear_x * self.linear_scalar #Set linear velocity
             twist.angular.z = self.angular_z
-            self.pub_cmd_vel.publish(twist)
+            self.pub_cmd_vel.publish(twist) #Send out command
 
 
 if __name__ == '__main__':
