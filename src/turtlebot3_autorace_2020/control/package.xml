@@ -63,6 +63,7 @@
   <depend>turtlebot3_autorace_detect</depend>
   <depend>turtlebot3_autorace_driving</depend>
   <depend>turtlebot3_bringup</depend>
+  <depend>seniorproject</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

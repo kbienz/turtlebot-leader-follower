@@ -1,10 +1,15 @@
 <launch>
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
-    <rosparam command="load" file="$(find seniorproject)/config/laser_filter_config.yaml" />
-    <remap from="scan" to="/scan" />
-    <remap from="scan_filtered" to="/scan_filtered" />
-  </node>
+  <arg name="robot_name" default="$(env ROBOT_NUM)" doc="Unique namespace for the robot" />
 
-  <node pkg="seniorproject" type="test_clustering.py" name="test_clustering" output="screen">
-  </node>
+  <group ns="$(arg robot_name)">
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find seniorproject)/config/laser_filter_config.yaml" />
+    </node>
+
+    <node pkg="seniorproject" type="test_clustering.py" name="test_clustering" output="screen">
+      <remap from="/scan_filtered" to="/$(arg robot_name)/scan_filtered" />
+      <remap from="/nearest_distance" to="/$(arg robot_name)/nearest_distance" />
+    </node>
+  </group>
+
 </launch>

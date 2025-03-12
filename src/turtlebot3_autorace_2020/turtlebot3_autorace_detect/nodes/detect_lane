@@ -475,7 +475,7 @@ class DetectLane():
         final = cv2.addWeighted(final, 1, color_warp_lines, 1, 0)
 
         if self.pub_image_type == "compressed":
-            if self.is_center_x_exist == True:
+            if self.is_center_x_exist == True and 'centerx' in locals():
                 # publishes lane center
                 msg_desired_center = Float64()
                 msg_desired_center.data = centerx.item(175) #DEFAULT 350

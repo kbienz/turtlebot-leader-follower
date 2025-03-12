@@ -16,25 +16,25 @@ class RobotFollower:
         rospy.init_node('robot_follower', anonymous=True)
 
         # Store last 60 errors, for integral controller
-        self.integral_window_size = 45
+        self.integral_window_size = 20 #35
         self.error_queue = deque(maxlen=self.integral_window_size)
 
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
-        self.max_linear_speed = .108  # Maximum linear speed 0.108
+        self.max_linear_speed = .09  # Maximum linear speed 0.08
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
 
 #        self.min_safe_distance = 0.05  # Minimum safe distance to leader
 
-        # PID controller gains
-        self.linear_kp = .25
-        self.linear_ki = .08
-        self.linear_kd = .2      #.1
+        # PID controller gains, T0=2.08s K0=4
+        self.linear_kp = 1.8
+        self.linear_ki = .5 #1.04
+        self.linear_kd = .2 #0.26      #.1
         self.linear_scalar = 1.0 #Linear scaler, used for slowing down linear when making a turn
 
-        self.angular_kp = 0.0025 #0.0014 BEST
-        self.angular_kd = 0.007   #0.005 BEST
-        self.angular_ki = 0
+        self.angular_kp = 0.0028 #0.0014 BEST #prev 0.0025
+        self.angular_kd = 0.0023   #0.005 BEST #pfev 0.007
+        #self.angular_ki = 0
 
         # Controller state
         self.linear_error_sum = 0
@@ -64,6 +64,8 @@ class RobotFollower:
 
     def cbFollowLane(self, desired_center):
         center = desired_center.data
+        if center>500:
+            center=500
         error = center - 250
         angular_z = self.angular_kp * error + self.angular_kd * (error - self.last_angular_error)
         self.last_angular_error = error
@@ -72,10 +74,11 @@ class RobotFollower:
            error = 500
         elif error<=-500:
            error = -500
-        print(f"Error: {error}\n")
+        #print(f"Error: {error}\n")
         self.angular_z = -max(angular_z, -self.MAX_ANG_VEL) if angular_z < 0 else -min(angular_z, self.MAX_ANG_VEL)
         self.linear_scalar = 2*(1-np.abs(error)/500)**2.2  #2.2Initilialize scalar, ranging from 0 to 1.2
         self.linear_scalar =  min(self.linear_scalar, 1) #Set upper limit on scalar = 1
+
     def detect_leader(self, scan):
         """
         Process LIDAR scan to detect leader

@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   turtlebot3_autorace_detect
   turtlebot3_autorace_driving
   turtlebot3_bringup
+  seniorproject
 )
 
 ## System dependencies are found with CMake's conventions
