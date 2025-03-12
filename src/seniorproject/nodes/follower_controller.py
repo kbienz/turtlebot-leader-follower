@@ -21,7 +21,7 @@ class RobotFollower:
 
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
-        self.max_linear_speed = .108  # Maximum linear speed
+        self.max_linear_speed = .108  # Maximum linear speed 0.108
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
 
 #        self.min_safe_distance = 0.05  # Minimum safe distance to leader
@@ -51,14 +51,15 @@ class RobotFollower:
         self.angular_z = 0.0
 
         # Publishers and subscribers
-        self.sub_lidar = rospy.Subscriber('/scan', LaserScan, self.cbLidar)
+        self.sub_distance = rospy.Subscriber('/nearest_distance', Float32, self.cbDistance)
         self.sub_lane = rospy.Subscriber('/detect/lane', Float64, self.cbFollowLane, queue_size = 1)
 
         self.pub_cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size = 1)
 
-    def cbLidar(self, scan):
-        # Process LIDAR data to detect Leader
-        self.detect_leader(scan)
+    def cbDistance(self, distance):
+        # Process distance data to detect Leader
+        self.leader_distance = distance.data
+        #self.detect_leader(scan)
         self.follow_leader()
 
     def cbFollowLane(self, desired_center):

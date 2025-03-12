@@ -10,37 +10,35 @@ class LidarClusterDetector:
     def __init__(self):
         self.sub_lidar_data = rospy.Subscriber('/scan_filtered', LaserScan, self.cb_cluster_objects, queue_size=1)
         self.pub_nearest_distance = rospy.Publisher('/nearest_distance', Float32, queue_size=1)
-        
+
         # Clustering parameters
-        self.distance_threshold = 0.2  # Maximum distance between points in a cluster (in meters)
+        self.distance_threshold = 0.04  # Maximum distance between points in a cluster (in meters)
         self.min_cluster_size = 1  # Minimum points to form a cluster
-        
+
         self.previous_distance = 0
         self.nearest_distance = 0
-        
-        print("Successfully initialized LIDAR clustering node!")
 
     def polar_to_cartesian(self, ranges, angles):
         """Convert polar coordinates to cartesian"""
         x = ranges * np.cos(angles)
         y = ranges * np.sin(angles)
         return x, y
-        
+
     def simple_clustering(self, points_x, points_y):
         """Simple distance-based clustering algorithm"""
         n_points = len(points_x)
         if n_points == 0:
             return []
-            
+
         # Initialize clusters
         clusters = []
         visited = [False] * n_points
-        
+
         # For each point
         for i in range(n_points):
             if visited[i]:
                 continue
-                
+
             # Start a new cluster
             cluster = []
             self.expand_cluster(i, points_x, points_y, visited, cluster)
@@ -122,15 +120,17 @@ class LidarClusterDetector:
                 velocity = self.nearest_distance - self.previous_distance
                 
                 # Publish results
-                msg = Float32()
-                msg.data = self.nearest_distance
-                self.pub_nearest_distance.publish(msg)
+#                msg = Float32()
+#                msg.data = self.nearest_distance
+#                self.pub_nearest_distance.publish(msg)
                 
                 self.previous_distance = self.nearest_distance
                 
                 # Log information about the nearest cluster
                 #rospy.loginfo(f"Nearest cluster ({nearest_cluster}) - Distance: {round(self.nearest_distance, 2)}m, Points: {len(clusters[nearest_cluster])}, Velocity: {round(velocity, 2)}m/s")
                 #rospy.loginfo(f"Nearest cluster ({nearest_cluster}) - Distance: {round(self.nearest_distance, 2)}m, Angle: {round(angle_deg, 2)}°, Points: {len(clusters[nearest_cluster])}, Velocity: {round(velocity, 2)}m/s")
+                
+                robot = []
                 rospy.loginfo(f"Found {len(clusters)} clusters:")
                 for i, cluster in enumerate(clusters):
                     centroid_x = np.mean([p[0] for p in cluster])
@@ -138,7 +138,21 @@ class LidarClusterDetector:
                     distance = math.sqrt(centroid_x**2 + centroid_y**2)
                     angle_rad = math.atan2(centroid_y, centroid_x)
                     angle_deg = math.degrees(angle_rad)
-                    rospy.loginfo(f"  Cluster {i}: Points: {len(cluster)}, Distance: {round(distance, 2)}m, Angle: {round(angle_deg, 2)}°")
+                    total_angle = lidar_data.angle_increment*len(cluster)
+                    arc_len = total_angle * distance
+#                    initial_angle = np.arctan2(cluster[0][1], cluster[0][0])
+#                    final_angle = np.arctan2(cluster[-1][1], cluster[-1][0])
+#                    arc_len = (final_angle - initial_angle) * distance
+                    if .05 <= arc_len <= .17:
+                        robot.append(distance)
+                # robot approximate arc length range from .14 to .21
+                    #rospy.loginfo(f"  Cluster {i}: Points: {len(cluster)}, Distance: {round(distance, 2)}m, Angle: {round(angle_deg, 2)}°, Arc Length: {round(arc_len,2)}, Robot:{robot}")
+                print(round(min(robot), 3))
+          
+                msg = Float32()
+                msg.data = min(robot)
+                self.pub_nearest_distance.publish(msg)
+
         except Exception as e:
             rospy.logerr(f"Error in LiDAR clustering callback: {e}")
 
