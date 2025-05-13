@@ -21,7 +21,7 @@ class RobotFollower:
 
         # Follower control parameters
         self.desired_distance = .3  # Desired following distance in meters
-        self.max_linear_speed = .09  # Maximum linear speed 0.08
+        self.max_linear_speed = .055  # Maximum linear speed 0.08
         self.MAX_ANG_VEL = 1.2 #Max angular velocity (rad/sec)
 
 #        self.min_safe_distance = 0.05  # Minimum safe distance to leader
@@ -137,7 +137,7 @@ class RobotFollower:
                 self.angular_z *= -1
 
             #print(f"Linear scalar: {self.linear_scalar}\n")
-            twist.linear.x = self.linear_x * self.linear_scalar #Set linear velocity
+            twist.linear.x = self.max_linear_speed * self.linear_scalar #Set linear velocity
             twist.angular.z = self.angular_z
             self.pub_cmd_vel.publish(twist) #Send out command
 

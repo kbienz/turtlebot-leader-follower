@@ -1,0 +1,11 @@
+<launch>
+    <arg name="robot_name" default="$(env ROBOT_NUM)" doc="Unique namespace for the robot"/>
+    
+    <group ns="$(arg robot_name)">
+        <node pkg="jack_cline" type="velocity_conv.py" name="velocity_conv" output="screen" />
+    </group>
+
+    <include file="/home/ubuntu/catkin_ws/src/turtlebot3/turtlebot3_bringup/launch/turtlebot3_robot.launch">
+        <arg name="robot_name" value="$(arg robot_name)" />
+    </include>
+</launch>

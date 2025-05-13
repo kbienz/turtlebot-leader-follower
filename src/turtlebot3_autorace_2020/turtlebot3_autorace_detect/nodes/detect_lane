@@ -150,6 +150,7 @@ class DetectLane():
         elif self.sub_image_type == "raw":
             cv_image = self.cvBridge.imgmsg_to_cv2(image_msg, "bgr8")
         cv_image = cv2.resize(cv_image, (int(cv_image.shape[1]/2), int(cv_image.shape[0]/2)))
+        #cv_image = cv2.resize(cv_image, (int(cv_image.shape[1]/4), int(cv_image.shape[0]/4)))
 
         # find White and Yellow Lanes
         white_fraction, cv_white_lane = self.maskWhiteLane(cv_image)
@@ -421,19 +422,19 @@ class DetectLane():
 
         ploty = np.linspace(0, cv_image.shape[0] - 1, cv_image.shape[0])
 
-        if yellow_fraction > 3000:
+        if yellow_fraction > 750: #5/20 was 3000
             pts_left = np.array([np.flipud(np.transpose(np.vstack([self.left_fitx, ploty])))])
             cv2.polylines(color_warp_lines, np.int_([pts_left]), isClosed=False, color=(0, 0, 255), thickness=25)
 
-        if white_fraction > 3000:
+        if white_fraction > 750: #5/20 was 3000
             pts_right = np.array([np.transpose(np.vstack([self.right_fitx, ploty]))])
             cv2.polylines(color_warp_lines, np.int_([pts_right]), isClosed=False, color=(255, 255, 0), thickness=25)
         
         self.is_center_x_exist = True
 
         if self.reliability_white_line > 50 and self.reliability_yellow_line > 50:   
-            if white_fraction > 3000 and yellow_fraction > 3000:
-                centerx = np.mean([self.left_fitx, self.right_fitx], axis=0)
+            if white_fraction > 750 and yellow_fraction > 750: #5/20 was 3000 3000
+                centerx = np.mean([self.left_fitx, self.right_fitx], axis=0) - 40
                 pts = np.hstack((pts_left, pts_right))
                 pts_center = np.array([np.transpose(np.vstack([centerx, ploty]))])
 
@@ -448,14 +449,14 @@ class DetectLane():
 
                 cv2.polylines(color_warp_lines, np.int_([pts_center]), isClosed=False, color=(0, 255, 255), thickness=12)
 
-            if white_fraction <= 3000 and yellow_fraction > 750: #was 3000
-                centerx = np.add(self.left_fitx, 160) #was 320
+            if white_fraction <= 750 and yellow_fraction > 750: #was 3000 #5/20 was 3000 750
+                centerx = np.add(self.left_fitx, 120) #was 320
                 pts_center = np.array([np.transpose(np.vstack([centerx, ploty]))])
 
                 cv2.polylines(color_warp_lines, np.int_([pts_center]), isClosed=False, color=(0, 255, 255), thickness=12)
 
         elif self.reliability_white_line <= 50 and self.reliability_yellow_line > 50:
-            centerx = np.add(self.left_fitx, 160) #was 320
+            centerx = np.add(self.left_fitx, 120) #was 320
             pts_center = np.array([np.transpose(np.vstack([centerx, ploty]))])
 
             cv2.polylines(color_warp_lines, np.int_([pts_center]), isClosed=False, color=(0, 255, 255), thickness=12)
